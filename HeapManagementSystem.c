@@ -1,381 +1,282 @@
 #include<stdio.h>
-#include<stdbool.h>
 #include<stdlib.h>
+#include<string.h>
 
-typedef struct node
+typedef struct nodealloc
+{	char data[5];
+	int address;
+	int memory;
+	struct nodealloc *next;
+}nodea;
+
+nodea* createnodea(char data[5],int address,int memory)			//allocated list node creation  
 {
-    int data;
-    bool mark;//for marking the nodes to use mark and sweep method
-    int referenceCount;//reference count method
-    struct node *next_1;
-    struct node *next_2;
-    struct node *next_3;
-}Node;
+	nodea* ptr;
+	ptr = (nodea*)malloc(sizeof(nodea));
+	strcpy(ptr->data,data);
+	ptr->address = address;
+	ptr->memory = memory;
+	ptr->next = NULL;
+	return ptr;	
+} 
 
- 
-Node *array[8];
+typedef struct nodefree
+{	int start_address;
+	int end_address;
+	int memory;
+	struct nodefree *next;
+}nodef;
+
+nodef* createnodef(int start_add,int end_add,int memory)		//free list node creation
+{	
+	nodef* ptr;
+	ptr = (nodef*)malloc(sizeof(nodef));
+	ptr->start_address = start_add;
+	ptr->end_address= end_add;
+	ptr->memory= memory;
+	ptr->next = NULL;
+	return ptr;
+}
+
+nodea* insert_at_starta(nodea *lptr,int address,int memory,char* data)		//inserting at start in allocated list
+{	
+	nodea *ptr;
+	ptr = createnodea(data,address,memory);
+	ptr->next = lptr;
+	lptr = ptr;
+	return lptr;
+}
 
 
+void printalloc(nodea *lptr)											//print  allocated list
+{
+	printf("The allocated list is:\n");
+	printf("data\taddress\tmemory\n");
+	for(;lptr != NULL;lptr = lptr->next)
+	{	printf("%s\t",lptr->data);
+		printf("%d\t",lptr->address);
+		printf("%d\n",lptr->memory);	
+	}
+}
 
-void print_node(int i);
-void edgeSet(int so,int dest1,int dest2,int dest3);
-void print_allNodes(Node* root);
-void adjacency_list();
-int root_is_present(Node* root_1,Node* temp);
-void reference_counting(Node* root);
-void adjacency_Matrix();
-void mark_the_Nodes(Node*root,int i,int j);
-void mark_method(Node* root);
-void sweep_method();
+
+nodef* insert_at_startf(nodef *lptr,int start_add,int end_add,int memory)			//inserting at start in allocated list
+{
+	nodef *ptr;
+	ptr = createnodef(start_add,end_add,memory);
+	ptr->next = lptr;
+	lptr = ptr;
+	return lptr;
+}
+
+void printfree(nodef *lptr)														//print of free list 
+{
+	printf("The Free list is:\n");
+	printf("start_addr\tEnd_addr\tmemory\n");
+	for(;lptr != NULL;lptr = lptr->next)
+	{	printf("%d\t\t",lptr->start_address);
+		printf("%d\t\t",lptr->end_address);
+		printf("%d\n",lptr->memory);
+	}
+}
+
+nodea* free_fun(nodea *aptr,nodef **fptr,char f[5])									//free the memory 
+{	
+	nodea *p,*sptr,*prev,*nptr;
+	nodef *q,*optr;
+	int start_address,end_address,memory,value = 0;
+	q = *fptr;
+	p = aptr;
+	prev = NULL;
+	while((p != NULL)&&(value == 0))
+	{	if(!strcmp(p->data,f))
+		{	start_address = p->address;
+			end_address = (p->address) + (p->memory);
+			memory= p->memory;
+			value = 1;
+			if(p == aptr)
+			{	nptr = p;
+				p = p->next;
+				free(nptr);
+				aptr = p;
+			}	
+			else
+			{	prev->next = p->next;
+				free(p);
+			}
+		}
+		else
+		{	prev = p;
+			p = p->next;
+		}
+	}
+	value = 0;
+	while((q != NULL)&&(value== 0))
+	{	if(q->start_address == end_address)
+		{	q->start_address = start_address;
+			q->memory= (q->memory) + (memory);
+			value = 1;
+		}
+		else if(q->end_address == start_address)
+		{	q->end_address = end_address;
+			q->memory = (q->memory) + (memory);
+			value = 1;
+		}
+		q = q->next;
+	}
+
+	if(value == 0)
+	{	*fptr = insert_at_startf(*fptr,start_address,end_address,memory);
+	}
+	return aptr;
+}		
+
+nodea* modifyf(nodef *lptr,nodea *aptr,int memory,char data[5])						//modifing the data in free memory
+{
+	nodef *ptr,*sptr,*prev;
+	int start_address;
+	int flag = 1;
+	sptr = ptr = lptr;
+	while((ptr != NULL)&&(flag == 1))
+	{	if(ptr->memory>= memory)
+		{	start_address = ptr->start_address;
+			ptr->start_address = (ptr->start_address) + memory;
+			ptr->memory= (ptr->memory) - (memory);	
+			flag = 0;
+			aptr = insert_at_starta(aptr,start_address,memory,data);
+		}
+		else 
+		{
+			ptr = ptr->next;
+		}
+	}
+	if(ptr == NULL)
+	{ 
+		printf("Memory allocation not possible \n");		//when full of memory
+	}
+	while(sptr->next != NULL)
+	{	if(((sptr->next)->start_address) == ((sptr->next)->end_address))
+		{	prev = sptr;														//removing duplicate nodes with same start and end addresses
+			sptr = sptr->next;
+			prev->next = sptr->next;
+			free(sptr);
+		}
+		else
+		{
+			sptr = sptr->next;
+		}
+	}
+	return aptr;
+}
+
+nodef* merge_freeblocks(nodef *lptr1,nodef *lptr2)												// merge function
+{
+	nodef *final,*last;
+	nodef *a,*b;
+	a = lptr1,b = lptr2;
+	
+	if(lptr1 == NULL)
+	{	final = lptr2;
+	}
+	else if(lptr2 == NULL)
+	{	final = lptr1;
+	}
+	else
+	{	if((lptr1->memory) < (lptr2->memory))
+		{	final = lptr1;
+			a = a->next;
+		}
+		else
+		{	final = lptr2;
+			b = b->next;
+		}
+		last = final;
+		while((a != NULL)&&(b != NULL))
+		{	if((a->memory) < (b->memory))
+			{	last = last->next = a;
+				a = a->next;
+			}
+			else
+			{	last = last->next = b;
+				b = b->next;
+			}
+		}
+		if(a != NULL)
+		{
+			last->next = a;
+		}
+		else
+		{	
+			last->next = b;
+		}
+	}
+	return final;
+}
 
 
 int main()
-{	
-    printf("\n                 SL assignment-4               \n");
-	int val[]={2,3,4,5,7,8,9,10};
-	int i;
-	for(i=0;i<8;i++)
+{
+	nodea *aptr;
+	nodef *fptr;
+	aptr = NULL;
+	fptr = NULL;
+	aptr = insert_at_starta(aptr,10,10,"node1");
+	aptr = insert_at_starta(aptr,50,20,"node2");
+	aptr = insert_at_starta(aptr,100,30,"node3");
+	fptr = insert_at_startf(fptr,20,50,30);
+	fptr = insert_at_startf(fptr,70,100,30);
+	fptr = insert_at_startf(fptr,130,200,70);//considered the max size as 200
+	int option=0,flag=1;
+	while(flag==1)
 	{
-		Node* new_node =(Node*)malloc(sizeof(Node));
-		new_node->data=val[i];
-		new_node->next_1=NULL;
-		new_node->next_2=NULL;
-		new_node->next_3=NULL;
-		new_node->referenceCount=0;
-		new_node->mark=false;		
-		array[i]=new_node;
-	}
-	
-	Node*root_1=array[3];
-	array[3]->referenceCount+=1;
-	Node*root_2=array[0];
-	array[0]->referenceCount+=1;
-	
-	edgeSet(0,1,6,7);
-	edgeSet(2,5,7,-1);
-	edgeSet(3,0,-1,-1);
-	edgeSet(4,0,5,-1);
-	edgeSet(5,6,-1,-1);
-	
-	printf("\nAll nodes through Root-1:\n");
-	print_allNodes(root_1);
+		printf("\t1)Allocate \n");
+		printf("\t2)Delete/free memory \n");
+		printf("\t3)Display Memory stats \n");
+		printf("\t4)Exit the program\n");
+		printf("Select a option from Following :- ");
+		scanf("%d",&option);
+		switch(option)
+        {
+            case 1:
+            {
+            	int memory;
+            	char data[5];
+                printf("\nEnter the space to be allocated : ");
+                scanf("%d",&memory);
+				printf("enter the data :");
+				scanf("%s",data);
+				aptr = modifyf(fptr,aptr,memory,data);
+				printalloc(aptr);
+				printfree(fptr);
+				break;
+			}
+				
+			case 2:
+			{
+				char free[5];
+		    	printalloc(aptr);
+				printf("\n Which memory you want to free\n");
+				scanf("%s",free);
+				aptr = free_fun(aptr,&fptr,free);
+				printalloc(aptr);
+				printfree(fptr);
+				break;
+			
+			}
+			case 3:
+			{
+				printalloc(aptr);
+				printfree(fptr);
+				break;
+			}
+			
+			case 4:
+				flag=0;
+				
 		
-	printf("\nAll nodes through Root-2:\n");
-	print_allNodes(root_2);
-
-    //Displaying Adjacency list of the nodes with corresponding value or vertex
-	printf("\n\nAdjacency list :\n");
-	adjacency_list();
-
-    //Displaying Adjacency Matrix of the nodes	
-	printf("\n\nAdjacency matrix:\n");
-	adjacency_Matrix();
-
-    printf("\nCalling the mark and sweep garbage collector\n");
-	mark_method(root_1);
-	sweep_method();
-	printf("\n\nAdjacency list after removal of garbage:\n");
-	adjacency_list();
-	
-	printf("\n\nAdjacency matrix after removal of garbage:\n");
-	adjacency_Matrix();
-
+		}
+		printf("for continuing the program 1 should be entered");
+		scanf("%d",&flag);
+	}
 	return 0;
-}
-
-
-//function to display reference count and freed size
-void print_node(int i)
-{
-	printf("value=%d\t reference_count=%d freed_size=%d\n",array[i]->data,array[i]->referenceCount,sizeof(Node));
-}
-//set edges between nodes
-void edgeSet(int so,int dest1,int dest2,int dest3)
-{
-	if(dest1!=-1)
-	{
-		array[so]->next_1=array[dest1];
-		array[dest1]->referenceCount+=1;
-	}
-	if(dest2!=-1)
-	{
-		array[so]->next_2=array[dest2];
-		array[dest2]->referenceCount+=1;
-	}
-	if(dest3!=-1)
-	{
-		array[so]->next_3=array[dest3];
-		array[dest3]->referenceCount+=1;
-	}
-	
-}
-//prints all the nodes (works as a tree in a way)
-void print_allNodes(Node* root)
-{
-	if(root!=NULL)
-	{
-		printf("value=%d:referenceCount=%d\n",root->data,root->referenceCount);
-	}
-	if(root==NULL)
-	{
-		return;
-	}
-	print_allNodes(root->next_1);
-	print_allNodes(root->next_2);
-	print_allNodes(root->next_3);
-}
-// it lists all the nodes that are connected for a particular vertex
-void adjacency_list()
-{
-	int i=0;
-	for(i=0;i<8;i++)
-	{
-		if(array[i]!=NULL)
-		{
-			printf("Value=%d: ",array[i]->data);
-			if(array[i]->next_1!=NULL)
-			{
-				printf("%d ->",array[i]->next_1->data);
-			}
-			if(array[i]->next_2!=NULL)
-			{
-				printf("%d ->",array[i]->next_2->data);
-			}
-			if(array[i]->next_3!=NULL)
-			{
-				printf("%d ->",array[i]->next_3->data);
-			}
-			printf("NULL\n");
-		}
-	}
-}
-// it checks whether the node is present in the root pointing list or not
-int root_is_present(Node* root_1,Node* temp)
-{
-	if(root_1==NULL)
-	{
-		return 0;
-	}
-	if(root_1->data==temp->data)
-	{
-		return 1;
-	}
-	
-	if(root_is_present(root_1->next_1,temp))
-	{
-		return 1;
-	}
-	
-	if(root_is_present(root_1->next_2,temp))
-	{
-		return 1;
-	}
-	if(root_is_present(root_1->next_3,temp))
-	{
-		return 1;
-	}
- return 0;
-}
-
-// if node is absent in root and then all the linkages to that particular node is , i.e.; reference counting should be decreased by 1 
-// as the node is now garbage
-void reference_counting(Node* root)
-{
-	int i=0;
-	while(i<8)
-	{
-		if(root_is_present(root,array[i])==0 )
-		{		
-			if(array[i]->next_1!=NULL)
-			{
-				array[i]->next_1->referenceCount-=1;
-			}
-			if(array[i]->next_2!=NULL)
-			{
-				array[i]->next_2->referenceCount-=1;
-			}
-			if(array[i]->next_3!=NULL)
-			{
-				array[i]->next_3->referenceCount-=1;
-			}
-			printf("Garbage:");
-			print_node(i);
-			free(array[i]);
-			array[i]=NULL;
-		}
-		 i++;		
-	}
-	 
-}
-// represents a finite graph
-// 1 if present 
-// 0 if absent
-void adjacency_Matrix()
-{
-	int adm[8][8];
-	int i,j,k;
-	
-	for(i=0;i<8;i++)		//initialising all indices values to 0
-	{
-		for(j=0;j<8;j++)
-		{
-			adm[i][j]=0;
-		}	
-	}
-	
-	for(i=0;i<8;i++)
-	{
-		for(j=0;j<8;j++)
-		{
-			
-		if(array[j]!=NULL&&array[i]!=NULL)
-		{
-			
-			if(array[i]->next_1!=NULL)
-			{
-				if(array[i]->next_1->data==array[j]->data&&i!=j)
-				{
-					adm[i][j]=1;
-				}
-			}
-			if(array[i]->next_2!=NULL)
-			{
-				if(array[i]->next_2->data==array[j]->data&&i!=j)
-				{
-					adm[i][j]=1;
-				}
-			}
-			if(array[i]->next_3!=NULL)
-			{
-				if(array[i]->next_3->data==array[j]->data&&i!=j)
-				{
-					adm[i][j]=1;
-				}
-			}
-		}
-		
-		}
-	}
-	
-	for(i=0;i<8;i++)
-	{
-		for(j=0;j<8;j++)
-		{
-			printf("%d ",adm[i][j]);		//printing the adjacency matrix
-		}
-		printf("\n");
-	}
-}
-// marks true if node is active, otherwise false
-void mark_the_Nodes(Node*root,int i,int j)
-{
-    Node *current, *pre;
-
-    current = root;
-        
-    while (current != NULL) 
-    {
-  
-        if (current->next_1== NULL) 
-        {
-            current->mark=true;
-            current = current->next_2;
-        }   
-        else 
-        {
-            pre = current->next_1;
-            while ((pre->next_2 != NULL) && (pre->next_2 != current))
-            {
-            	pre = pre->next_2;
-			}
-                
-            if (pre->next_2 == NULL) 
-            {
-                pre->next_2 = current;
-                current = current->next_1;
-            }
-            else 
-            {
-                pre->next_2 = NULL;
-                current->mark=true;
-                current = current->next_2;
-            } 
-        }
-    }   
-    
-    current = root;
-        
-    while (current != NULL) 
-    {
-  
-        if (current->next_1== NULL) 
-        {
-            current->mark=true;
-            current = current->next_3;
-        }   
-        else 
-        {
-            pre = current->next_1;
-            while ((pre->next_3 != NULL) && (pre->next_3 != current))
-            {
-            	pre = pre->next_3;
-			}
-                
-            if (pre->next_3 == NULL) 
-            {
-                pre->next_3 = current;
-                current = current->next_1;
-            }
-            else 
-            {
-                pre->next_3 = NULL;
-                current->mark=true;
-                current = current->next_3;
-            } 
-        }
-    }  
-    
-}
-// mark method
-void mark_method(Node* root)
-{
-	
-	if(root!=NULL)
-	{
-		root->mark=true;
-	}
-	if(root==NULL)
-	{
-		return;
-	}
-	mark_method(root->next_1);
-	mark_method(root->next_2);
-	mark_method(root->next_3);
-}
-// frees the space if mark bit is false i.e. zero
-void sweep_method()
-{
-	int i;
-	for(i=0;i<8;i++)
-	{
-		if(array[i]->mark==false)
-		{
-			if(array[i]->next_1!=NULL)
-			{
-				array[i]->next_1->referenceCount-=1;
-			}
-			if(array[i]->next_2!=NULL)
-			{
-				array[i]->next_2->referenceCount-=1;
-			}
-			if(array[i]->next_3!=NULL)
-			{
-				array[i]->next_3->referenceCount-=1;
-			}
-			printf("Garbage:");
-			print_node(i);
-			free(array[i]);
-			array[i]=NULL;
-		}
-	}
 }
