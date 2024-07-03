@@ -1,43 +1,43 @@
 # Heap-Management-System
 
-This project demonstrates the implementation of garbage collection using the mark-and-sweep method in C. The program manages a graph-like structure with nodes, where each node can point to up to three other nodes. The garbage collection mechanism ensures that only nodes reachable from the root nodes are kept, while unreachable nodes are identified and deallocated.
+This project simulates a basic memory management system. It allows for allocating and freeing memory, displaying current memory allocations and free memory blocks, and merging free memory blocks. The program is implemented in C using linked lists to represent allocated and free memory blocks.
 
 ## Features
 
-1. **Initialization of Nodes**
-   - Initializes an array of 8 nodes with predefined values.
-   - Sets up reference counts and mark flags for each node.
+1. **Allocate Memory**: Requests a specified amount of memory and allocates it if available.
+2. **Free Memory**: Frees memory blocks previously allocated.
+3. **Display Memory Stats**: Shows the current status of both allocated and free memory blocks.
+4. **Merge Free Blocks**: Combines adjacent free memory blocks to create larger contiguous blocks.
 
-2. **Edge Setup**
-   - Establishes edges between nodes to form a directed graph.
+## Components
 
-3. **Print Nodes**
-   - Displays the data, reference count, and memory size of each node.
+- **Allocated Memory Nodes (nodea)**:
+  - `char data[5]`: Identifier for the memory block.
+  - `int address`: Starting address of the memory block.
+  - `int memory`: Size of the memory block.
+  - `struct nodealloc *next`: Pointer to the next allocated memory block.
 
-4. **Adjacency List and Matrix**
-   - Provides both adjacency list and adjacency matrix representations of the graph.
-
-5. **Mark and Sweep**
-   - Implements mark-and-sweep garbage collection to identify and free unreachable nodes.
-
-## Usage
-
-1. Compile the program using a C compiler.
-2. Run the executable.
-3. The program will initialize the nodes, set up edges, and display the graph's adjacency list and matrix.
-4. It then performs mark-and-sweep garbage collection and displays the updated adjacency list and matrix.
+- **Free Memory Nodes (nodef)**:
+  - `int start_address`: Starting address of the free memory block.
+  - `int end_address`: Ending address of the free memory block.
+  - `int memory`: Size of the free memory block.
+  - `struct nodefree *next`: Pointer to the next free memory block.
 
 ## Functions
 
-- `print_node(int i)`: Prints the data, reference count, and freed size of a node.
-- `edgeSet(int so, int dest1, int dest2, int dest3)`: Sets edges between nodes.
-- `print_allNodes(Node* root)`: Prints all nodes reachable from a given root node.
-- `adjacency_list()`: Displays the adjacency list of the graph.
-- `root_is_present(Node* root_1, Node* temp)`: Checks if a node is present in the root's list.
-- `reference_counting(Node* root)`: Decrements reference counts and frees memory for unreachable nodes.
-- `adjacency_Matrix()`: Displays the adjacency matrix of the graph.
-- `mark_the_Nodes(Node* root, int i, int j)`: Marks nodes as reachable.
-- `mark_method(Node* root)`: Marks all reachable nodes starting from a given root node.
-- `sweep_method()`: Frees memory for nodes that are not marked as reachable.
+- **Node Creation**: Functions to create nodes for allocated and free memory lists.
+- **Insertion**: Functions to insert nodes at the start of allocated and free memory lists.
+- **Display**: Functions to print the current allocated and free memory lists.
+- **Memory Allocation**: Function to allocate memory and modify the free memory list.
+- **Memory Deallocation**: Function to free memory and update the free memory list.
+- **Merge Free Blocks**: Function to merge two lists of free memory blocks.
 
-This project showcases the fundamentals of garbage collection using the mark-and-sweep technique, ensuring efficient memory management in a graph structure.
+## Usage
+
+The program provides a menu-driven interface to:
+1. Allocate memory.
+2. Free memory.
+3. Display current memory allocations and free blocks.
+4. Exit the program.
+
+This project demonstrates a simplified memory management approach suitable for educational purposes.
